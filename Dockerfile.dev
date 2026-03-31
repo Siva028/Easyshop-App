@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Install dependencies (cached layer — only re-runs if package.json changes)
+COPY package.json yarn.lock ./
+RUN yarn install --frozen-lockfile
+
+# Source code is mounted as a volume at runtime (see docker-compose.dev.yml)
+# so we don't COPY it here — changes reflect immediately
+
+EXPOSE 3000
+
+CMD ["yarn", "dev"]
