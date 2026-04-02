@@ -9,6 +9,11 @@ env:
   ECR_REPO:     easyshop-prod
   HELM_VALUES:  helm/easyshop/values.prod.yaml
 
+# Required for OIDC auth to AWS
+permissions:
+  id-token: write
+  contents: write
+
 jobs:
   # ── Job 1: Lint + build check ────────────────────────────────────
   ci:
