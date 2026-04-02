@@ -1,0 +1,121 @@
+name: Deploy — Prod
+
+on:
+  push:
+    branches: [main]
+
+env:
+  AWS_REGION:   ap-south-1
+  ECR_REPO:     easyshop-prod
+  HELM_VALUES:  helm/easyshop/values.prod.yaml
+
+jobs:
+  # ── Job 1: Lint + build check ────────────────────────────────────
+  ci:
+    name: Lint + build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "yarn"
+
+      - run: yarn install --frozen-lockfile
+      - run: yarn lint
+      - run: yarn build
+        env:
+          NEXTAUTH_SECRET: ci-placeholder
+          JWT_SECRET: ci-placeholder
+          MONGODB_URI: mongodb://localhost:27017/test
+          NEXTAUTH_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: http://localhost:3000/api
+
+  # ── Job 2: Build Docker image + push to prod ECR ──────────────────
+  build-push:
+    name: Build + push to prod ECR
+    runs-on: ubuntu-latest
+    needs: ci
+    outputs:
+      image_tag:    ${{ steps.tag.outputs.tag }}
+      ecr_registry: ${{ steps.login-ecr.outputs.registry }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials via OIDC
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN_PROD }}
+          aws-region:     ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set image tag
+        id: tag
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "tag=${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          else
+            echo "tag=${{ github.sha }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ steps.tag.outputs.tag }}
+            ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:latest
+          cache-from: type=gha
+          cache-to:   type=gha,mode=max
+
+  # ── Job 3: Manual approval gate ───────────────────────────────────
+  # Go to: Repo Settings → Environments → New environment → "production"
+  # Add yourself as a required reviewer — you must click Approve in GitHub
+  # before the next job runs and touches prod.
+  approve-prod:
+    name: Manual approval gate
+    runs-on: ubuntu-latest
+    needs: build-push
+    environment: production
+
+    steps:
+      - name: Approved for prod
+        run: echo "Prod deployment approved for ${{ needs.build-push.outputs.image_tag }}"
+
+  # ── Job 4: Update Helm values → triggers ArgoCD ──────────────────
+  update-helm:
+    name: Update prod Helm tag → triggers ArgoCD
+    runs-on: ubuntu-latest
+    needs: [build-push, approve-prod]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Bump image repository + tag in values.prod.yaml
+        run: |
+          REGISTRY="${{ needs.build-push.outputs.ecr_registry }}"
+          TAG="${{ needs.build-push.outputs.image_tag }}"
+          sed -i "s|repository:.*|repository: \"$REGISTRY/${{ env.ECR_REPO }}\"|" ${{ env.HELM_VALUES }}
+          sed -i "s|tag:.*|tag: \"$TAG\"|"                                          ${{ env.HELM_VALUES }}
+
+      - name: Commit and push updated values
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add ${{ env.HELM_VALUES }}
+          git diff --staged --quiet || \
+            git commit -m "ci(prod): deploy ${{ needs.build-push.outputs.image_tag }}"
+          git push
