@@ -1,0 +1,58 @@
+# Base defaults — overridden by values.dev.yaml or values.prod.yaml
+
+image:
+  repository: ""        # set in values.dev.yaml / values.prod.yaml
+  tag: latest
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: nginx
+  host: ""              # set per environment
+  tls: true
+  certIssuer: letsencrypt-prod
+
+env:
+  NODE_ENV: production
+  NEXT_PUBLIC_API_URL: ""
+  NEXTAUTH_URL: ""
+
+secrets:
+  NEXTAUTH_SECRET: ""   # passed via --set at helm install time
+  JWT_SECRET: ""        # passed via --set at helm install time
+
+mongodb:
+  enabled: true
+  storageSize: 5Gi
+  storageClass: gp2
+
+autoscaling:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+probes:
+  liveness:
+    path: /api/health
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  readiness:
+    path: /api/health
+    initialDelaySeconds: 10
+    periodSeconds: 5

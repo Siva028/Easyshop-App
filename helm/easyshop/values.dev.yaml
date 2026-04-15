@@ -1,0 +1,29 @@
+# Dev environment overrides
+# GitHub Actions updates image.repository and image.tag on every push to develop
+
+image:
+  repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"   # ← paste terraform output ecr_repository_url
+  tag: "dev-latest"
+
+replicaCount: 1
+
+ingress:
+  host: dev.easyshop.yourdomain.com    # ← replace with your domain or use nip.io
+
+env:
+  NEXT_PUBLIC_API_URL: "https://dev.easyshop.yourdomain.com/api"
+  NEXTAUTH_URL: "https://dev.easyshop.yourdomain.com"
+
+mongodb:
+  storageSize: 2Gi
+
+autoscaling:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
