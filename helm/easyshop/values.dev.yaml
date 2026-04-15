@@ -2,8 +2,8 @@
 # GitHub Actions updates image.repository and image.tag on every push to develop
 
 image:
-  repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"   # ← paste terraform output ecr_repository_url
-  tag: "dev-latest"
+  repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"
+  tag: "dev-cf0d6e5db1aa79021b95c6e9cf8067ae730b20cb"
 
 replicaCount: 1
 
