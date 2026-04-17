@@ -3,7 +3,7 @@
 
 image:
   repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"
-  tag: "dev-28726ea43206f6f7133a950bcffaf32627c8ecca"
+  tag: "dev-aa2335a2d41aa017fbbb1a58d8b70c3e42b2bfdc"
 
 replicaCount: 1
 
