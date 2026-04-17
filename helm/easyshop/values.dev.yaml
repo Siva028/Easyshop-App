@@ -3,7 +3,7 @@
 
 image:
   repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"
-  tag: "dev-ada5ccd01e014587d0018f548b943d2d33e8f69"
+  tag: "dev-ed0d9943c51e9959f843b0729d1afabadca76c14"
 
 replicaCount: 1
 
@@ -27,3 +27,13 @@ resources:
   limits:
     cpu: 250m
     memory: 256Mi
+
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  readiness:
+    path: /
+    initialDelaySeconds: 15
+    periodSeconds: 10
