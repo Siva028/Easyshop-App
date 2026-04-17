@@ -1,0 +1,93 @@
+# PrometheusRule — custom alerts for EasyShop
+# Apply: kubectl apply -f monitoring/alerts.yaml
+
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: easyshop-alerts
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  groups:
+
+    - name: easyshop-app
+      interval: 1m
+      rules:
+
+        # ── Alert 1: Pod crash-looping ────────────────────────────
+        - alert: EasyShopPodCrashLooping
+          expr: |
+            rate(kube_pod_container_status_restarts_total{
+              namespace=~"easyshop-.*"
+            }[15m]) * 60 > 1
+          for: 5m
+          labels:
+            severity: critical
+            app: easyshop
+          annotations:
+            summary: "Pod {{ $labels.pod }} is crash-looping"
+            description: "Restart rate > 1/min for 5 minutes in {{ $labels.namespace }}"
+
+        # ── Alert 2: No running pods ──────────────────────────────
+        - alert: EasyShopNoPods
+          expr: |
+            kube_deployment_status_replicas_available{
+              namespace=~"easyshop-.*",
+              deployment=~".*easyshop.*"
+            } == 0
+          for: 2m
+          labels:
+            severity: critical
+            app: easyshop
+          annotations:
+            summary: "EasyShop has 0 available pods in {{ $labels.namespace }}"
+            description: "Deployment {{ $labels.deployment }} has no available replicas"
+
+        # ── Alert 3: High memory usage ────────────────────────────
+        - alert: EasyShopHighMemory
+          expr: |
+            container_memory_working_set_bytes{
+              namespace=~"easyshop-.*",
+              container="easyshop"
+            } > 450 * 1024 * 1024
+          for: 10m
+          labels:
+            severity: warning
+            app: easyshop
+          annotations:
+            summary: "EasyShop pod memory > 450Mi on {{ $labels.pod }}"
+            description: "Memory usage has been above 450Mi for 10 minutes"
+
+        # ── Alert 4: High CPU usage ───────────────────────────────
+        - alert: EasyShopHighCPU
+          expr: |
+            rate(container_cpu_usage_seconds_total{
+              namespace=~"easyshop-.*",
+              container="easyshop"
+            }[5m]) > 0.8
+          for: 10m
+          labels:
+            severity: warning
+            app: easyshop
+          annotations:
+            summary: "EasyShop CPU > 80% on {{ $labels.pod }}"
+            description: "CPU usage above 80% for 10 minutes"
+
+    - name: easyshop-mongodb
+      rules:
+
+        # ── Alert 5: MongoDB pod down ─────────────────────────────
+        - alert: MongoDBDown
+          expr: |
+            kube_pod_status_ready{
+              namespace=~"easyshop-.*",
+              pod=~"mongodb-.*"
+            } == 0
+          for: 2m
+          labels:
+            severity: critical
+            app: mongodb
+          annotations:
+            summary: "MongoDB is not ready in {{ $labels.namespace }}"
+            description: "MongoDB pod {{ $labels.pod }} has been unready for 2 minutes"

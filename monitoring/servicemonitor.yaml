@@ -1,0 +1,48 @@
+# Tells Prometheus WHERE to scrape EasyShop metrics from
+# Apply: kubectl apply -f monitoring/servicemonitor.yaml
+
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: easyshop
+  namespace: monitoring
+  labels:
+    # Must match the label Prometheus uses to discover ServiceMonitors
+    release: kube-prometheus-stack
+spec:
+  # Scrape from any namespace matching easyshop-*
+  namespaceSelector:
+    matchNames:
+      - easyshop-dev
+      - easyshop-prod
+  # Match services with this label
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: easyshop
+  endpoints:
+    - port: http
+      path: /metrics          # Next.js app must expose this endpoint
+      interval: 30s           # scrape every 30 seconds
+      scrapeTimeout: 10s
+---
+# Also scrape MongoDB via mongodb-exporter sidecar
+# (optional — add mongodb-exporter to your Helm chart if needed)
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: mongodb
+  namespace: monitoring
+  labels:
+    release: kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - easyshop-dev
+      - easyshop-prod
+  selector:
+    matchLabels:
+      app: mongodb
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 30s

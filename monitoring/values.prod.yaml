@@ -1,0 +1,109 @@
+# Prod monitoring — persistent, HA, Slack alerting
+
+grafana:
+  enabled: true
+  adminPassword: "changeme-use-k8s-secret-in-prod"
+
+  service:
+    type: LoadBalancer    # direct access in prod
+
+  persistence:
+    enabled: true
+    storageClassName: gp2
+    size: 10Gi
+
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: easyshop
+          folder: EasyShop
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/easyshop
+
+  dashboards:
+    easyshop:
+      kubernetes-cluster:
+        gnetId: 7249
+        revision: 1
+        datasource: Prometheus
+      nodejs-app:
+        gnetId: 11159
+        revision: 1
+        datasource: Prometheus
+      kubernetes-pods:
+        gnetId: 6417
+        revision: 1
+        datasource: Prometheus
+      mongodb:
+        gnetId: 2583
+        revision: 1
+        datasource: Prometheus
+
+  resources:
+    requests:
+      cpu: 250m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+prometheus:
+  prometheusSpec:
+    retention: 15d
+
+    resources:
+      requests:
+        cpu: 500m
+        memory: 1Gi
+      limits:
+        cpu: 1000m
+        memory: 2Gi
+
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          storageClassName: gp2
+          accessModes: ["ReadWriteOnce"]
+          resources:
+            requests:
+              storage: 20Gi
+
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+      slack_api_url: "https://hooks.slack.com/services/YOUR/WEBHOOK/HERE"
+
+    receivers:
+      - name: slack-alerts
+        slack_configs:
+          - channel: "#easyshop-alerts"
+            title: "{{ .GroupLabels.alertname }}"
+            text: "{{ range .Alerts }}{{ .Annotations.summary }}
+{{ end }}"
+            send_resolved: true
+      - name: "null"
+
+    route:
+      receiver: slack-alerts
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+      routes:
+        - match: { severity: critical }
+          receiver: slack-alerts
+        - match: { alertname: Watchdog }
+          receiver: "null"
+
+nodeExporter:
+  enabled: true
+
+kubeStateMetrics:
+  enabled: true

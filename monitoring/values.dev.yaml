@@ -1,0 +1,74 @@
+# Dev monitoring — lightweight, no persistence, port-forward access
+
+grafana:
+  enabled: true
+  adminPassword: "easyshop-dev-grafana"
+
+  service:
+    type: ClusterIP     # access via port-forward in dev
+
+  persistence:
+    enabled: false      # no storage needed in dev
+
+  # Pre-load useful dashboards automatically
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: easyshop
+          folder: EasyShop
+          type: file
+          options:
+            path: /var/lib/grafana/dashboards/easyshop
+
+  dashboards:
+    easyshop:
+      kubernetes-cluster:
+        gnetId: 7249      # Kubernetes cluster overview
+        revision: 1
+        datasource: Prometheus
+      nodejs-app:
+        gnetId: 11159     # Node.js app metrics
+        revision: 1
+        datasource: Prometheus
+      kubernetes-pods:
+        gnetId: 6417      # Pod metrics detail
+        revision: 1
+        datasource: Prometheus
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+prometheus:
+  prometheusSpec:
+    retention: 3d         # only keep 3 days in dev
+
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+    # Scrape EasyShop ServiceMonitors from any namespace
+    serviceMonitorSelectorNilUsesHelmValues: false
+    serviceMonitorNamespaceSelector: {}
+    serviceMonitorSelector: {}
+
+    # No persistent storage in dev — data lost on restart
+    storageSpec: {}
+
+alertmanager:
+  enabled: false          # no alerting in dev
+
+nodeExporter:
+  enabled: true           # scrape node metrics
+
+kubeStateMetrics:
+  enabled: true           # scrape K8s object metrics
