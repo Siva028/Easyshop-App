@@ -496,3 +496,7 @@ kubectl get svc nginx-ingress-ingress-nginx-controller -n ingress-nginx -o jsonp
 ![EasyShop Website Screenshot](./public/Deployed.png)
 
 ### Your project is now deployed.
+
+
+
+

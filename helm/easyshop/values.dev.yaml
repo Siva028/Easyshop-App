@@ -1,0 +1,39 @@
+# Dev environment overrides
+# GitHub Actions updates image.repository and image.tag on every push to develop
+
+image:
+  repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"
+  tag: "dev-b3350f961e9b644226e217a4b3ea4ed0eab42b08"
+
+replicaCount: 1
+
+ingress:
+  host: dev.easyshop.yourdomain.com    # ← replace with your domain or use nip.io
+
+env:
+  NEXT_PUBLIC_API_URL: "https://dev.easyshop.yourdomain.com/api"
+  NEXTAUTH_URL: "https://dev.easyshop.yourdomain.com"
+
+mongodb:
+  storageSize: 2Gi
+
+autoscaling:
+  enabled: false
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  readiness:
+    path: /
+    initialDelaySeconds: 15
+    periodSeconds: 10

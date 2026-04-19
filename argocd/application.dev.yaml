@@ -1,0 +1,50 @@
+# kubectl apply -f argocd/application.dev.yaml
+# After this, ArgoCD immediately syncs and deploys EasyShop to EKS
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: easyshop-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io   # clean up K8s resources on delete
+  labels:
+    environment: dev
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Siva028/Easyshop-App   # ← your app repo
+    targetRevision: develop                              # ← watches develop branch
+    path: helm/easyshop                                  # ← path to Helm chart
+
+    helm:
+      valueFiles:
+        - values.yaml          # base defaults
+        - values.dev.yaml      # dev overrides (image tag lives here)
+
+  destination:
+    server: https://kubernetes.default.svc   # local cluster
+    namespace: easyshop-dev                  # ArgoCD creates this automatically
+
+  syncPolicy:
+    automated:
+      prune: true       # delete K8s resources removed from Git
+      selfHeal: true    # revert any manual kubectl changes
+    syncOptions:
+      - CreateNamespace=true    # creates easyshop-dev namespace if missing
+      - PruneLast=true          # delete old resources after new ones are healthy
+      - ServerSideApply=true    # handles large resources better
+    retry:
+      limit: 3
+      backoff:
+        duration: 5s
+        factor: 2
+        maxDuration: 2m
+
+  # Ignore replica count diffs — HPA manages this at runtime
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas

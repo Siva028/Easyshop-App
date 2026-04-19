@@ -1,0 +1,49 @@
+# kubectl apply -f argocd/application.prod.yaml
+# Only apply once prod Terraform environment is provisioned
+
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: easyshop-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+  labels:
+    environment: prod
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/Siva028/Easyshop-App
+    targetRevision: main                # ← watches main branch
+    path: helm/easyshop
+
+    helm:
+      valueFiles:
+        - values.yaml
+        - values.prod.yaml              # ← prod overrides
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: easyshop-prod
+
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - PruneLast=true
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 5m
+
+  ignoreDifferences:
+    - group: apps
+      kind: Deployment
+      jsonPointers:
+        - /spec/replicas
