@@ -2,7 +2,7 @@
 # GitHub Actions updates image.repository and image.tag on every merge to main
 
 image:
-  repository: "REPLACE_WITH_PROD_ECR_URL"  # ← prod ECR URL when ready
+  repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-prod"  # ← prod ECR URL when ready
   tag: "latest"
 
 replicaCount: 3
