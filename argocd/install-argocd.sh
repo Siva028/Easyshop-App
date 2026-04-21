@@ -17,7 +17,19 @@ kubectl patch svc argocd-server -n argocd   -p '{"spec": {"type": "LoadBalancer"
 
 # Wait for LoadBalancer IP to be assigned (takes ~60 seconds on AWS)
 echo "Waiting for LoadBalancer IP..."
-kubectl get svc argocd-server -n argocd --watch
+# Wait until EXTERNAL-IP is no longer <pending>
+while true; do
+  EXTERNAL_IP=$(kubectl get svc argocd-server -n argocd \
+    -o jsonpath='{.status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+  
+  if [ -n "$EXTERNAL_IP" ]; then
+    echo "LoadBalancer IP/hostname assigned: $EXTERNAL_IP"
+    break
+  fi
+  
+  echo "Still waiting..."
+  sleep 10
+done
 
 # ── Step 3: Get ArgoCD admin password ─────────────────────────────
 echo "ArgoCD admin password:"
@@ -33,7 +45,7 @@ helm upgrade --install nginx-ingress ingress-nginx/ingress-nginx   --namespace i
 helm repo add jetstack https://charts.jetstack.io
 helm repo update
 
-helm upgrade --install cert-manager jetstack/cert-manager   --namespace cert-manager   --create-namespace   --version v1.14.0   --set installCRDs=true   --wait
+helm upgrade --install cert-manager jetstack/cert-manager   --namespace cert-manager   --create-namespace   --version v1.17.0   --set installCRDs=true   --wait
 
 echo ""
 echo "Done. Next steps:"

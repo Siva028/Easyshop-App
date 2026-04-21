@@ -30,3 +30,13 @@ resources:
   limits:
     cpu: 1000m
     memory: 1Gi
+
+probes:
+  liveness:
+    path: /
+    initialDelaySeconds: 30
+    periodSeconds: 15
+  readiness:
+    path: /
+    initialDelaySeconds: 15
+    periodSeconds: 10

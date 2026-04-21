@@ -1,37 +1,40 @@
 #!/bin/bash
-# Run after ArgoCD syncs to verify everything is healthy
 
-echo "==> ArgoCD app status"
-kubectl get applications -n argocd
+# Usage: ./verify-deploy.sh [dev|prod]
+# Default: dev
+
+ENV=${1:-dev}
+
+if [[ "$ENV" != "dev" && "$ENV" != "prod" ]]; then
+  echo "Error: ENV must be 'dev' or 'prod'"
+  exit 1
+fi
+
+NAMESPACE="easyshop-${ENV}"
+APP_NAME="easyshop-${ENV}"
+
+echo "==> Verifying deployment for environment: $ENV (namespace: $NAMESPACE)"
 
 echo ""
-echo "==> Pods in easyshop-dev namespace"
-kubectl get pods -n easyshop-dev
+echo "==> ArgoCD app status"
+kubectl get applications -n argocd "$APP_NAME"
+
+echo ""
+echo "==> Pods in $NAMESPACE namespace"
+kubectl get pods -n "$NAMESPACE"
 
 echo ""
 echo "==> Services"
-kubectl get svc -n easyshop-dev
+kubectl get svc -n "$NAMESPACE"
 
 echo ""
 echo "==> Ingress"
-kubectl get ingress -n easyshop-dev
+kubectl get ingress -n "$NAMESPACE"
 
 echo ""
 echo "==> MongoDB StatefulSet"
-kubectl get statefulset -n easyshop-dev
+kubectl get statefulset -n "$NAMESPACE"
 
 echo ""
 echo "==> Recent pod logs (app)"
-kubectl logs -n easyshop-dev   -l app.kubernetes.io/name=easyshop   --tail=50
-
-# ── Expected healthy state ────────────────────────────────────────
-# PODS:
-#   easyshop-xxxx   1/1   Running   0   2m
-#   mongodb-0       1/1   Running   0   2m
-#
-# SERVICES:
-#   easyshop-easyshop   ClusterIP   ...   80/TCP
-#   mongodb-service     ClusterIP   None  27017/TCP
-#
-# INGRESS:
-#   easyshop-easyshop   nginx   dev.easyshop.yourdomain.com   <EXTERNAL-IP>
+kubectl logs -n "$NAMESPACE" -l app.kubernetes.io/name=easyshop --tail=50
