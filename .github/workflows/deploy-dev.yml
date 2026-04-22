@@ -77,6 +77,15 @@ jobs:
             ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:dev-latest
           cache-from: type=gha
           cache-to:   type=gha,mode=max
+          
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ steps.login-ecr.outputs.registry }}/${{ env.ECR_REPO }}:${{ steps.tag.outputs.tag }}
+          format: table
+          exit-code: 1
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
 
   # ── Job 3: Update Helm values → triggers ArgoCD ──────────────────
   update-helm:
