@@ -68,15 +68,14 @@ jobs:
         uses: aquasecurity/trivy-action@master
         with:
           image-ref: easyshop-scan
-          format: table
+          format: sarif
+          output: trivy-results.sarif
           exit-code: 1
           severity: CRITICAL,HIGH
           ignore-unfixed: true
 
       - name: Upload Trivy scan results
         uses: actions/upload-artifact@v4
-        if: always()
         with:
           name: trivy-results
           path: trivy-results.sarif
-          retention-days: 7
