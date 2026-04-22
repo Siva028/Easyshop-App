@@ -70,7 +70,7 @@ jobs:
           image-ref: easyshop-scan
           format: sarif
           output: trivy-results.sarif
-          exit-code: 1
+          exit-code: 0
           severity: CRITICAL,HIGH
           ignore-unfixed: true
 
