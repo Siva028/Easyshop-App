@@ -5,8 +5,11 @@ on:
     branches: [main, develop]
 
 jobs:
-  ci:
-    name: Lint + build
+  # ─────────────────────────────────────────
+  # JOB 1 — Lint + Type check + Build
+  # ─────────────────────────────────────────
+  lint-build:
+    name: Lint + Type check + Build
     runs-on: ubuntu-latest
 
     steps:
@@ -19,18 +22,60 @@ jobs:
           node-version: "22"
           cache: "yarn"
 
+      - name: Cache Next.js build
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.yarn/cache
+            ${{ github.workspace }}/.next/cache
+          key: ${{ runner.os }}-nextjs-${{ hashFiles('yarn.lock') }}
+
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Lint
         run: yarn lint
 
-      - name: Type-check + build
+      - name: Type check
+        run: yarn tsc --noEmit
+
+      - name: Build
         run: yarn build
         env:
-          # Dummy values so Next.js build doesn't fail on missing env
           NEXTAUTH_SECRET: ci-placeholder
           JWT_SECRET: ci-placeholder
           MONGODB_URI: mongodb://localhost:27017/test
           NEXTAUTH_URL: http://localhost:3000
           NEXT_PUBLIC_API_URL: http://localhost:3000/api
+
+  # ─────────────────────────────────────────
+  # JOB 3 — Docker Image Vulnerability Scan
+  # (warns only — does not block the PR)
+  # ─────────────────────────────────────────
+  trivy-scan:
+    name: Trivy Docker Scan
+    runs-on: ubuntu-latest
+    needs: lint-build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Build Docker image
+        run: docker build -t easyshop-scan .
+
+      - name: Scan image with Trivy
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: easyshop-scan
+          format: sarif
+          output: trivy-results.sarif
+          exit-code: 0
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+
+      - name: Upload Trivy scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: trivy-results.sarif
