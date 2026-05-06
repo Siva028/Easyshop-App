@@ -3,16 +3,17 @@
 
 image:
   repository: "665908544590.dkr.ecr.ap-south-1.amazonaws.com/easyshop-dev"
-  tag: "dev-b3350f961e9b644226e217a4b3ea4ed0eab42b08"
+  tag: "dev-0f7b3418ee86b2340c242cfe77b00d8a1e541d13"
 
 replicaCount: 1
 
 ingress:
-  host: dev.easyshop.yourdomain.com    # ← replace with your domain or use nip.io
+  host: dev.easyshop-siva.online    # ← replace with your domain or use nip.io
+  certIssuer: letsencrypt-staging   # use staging issuer for dev to avoid hitting rate limits during testing; switch to letsencrypt-prod for production use
 
 env:
-  NEXT_PUBLIC_API_URL: "https://dev.easyshop.yourdomain.com/api"
-  NEXTAUTH_URL: "https://dev.easyshop.yourdomain.com"
+  NEXT_PUBLIC_API_URL: "https://dev.easyshop-siva.online/api"
+  NEXTAUTH_URL: "https://dev.easyshop-siva.online"
 
 mongodb:
   storageSize: 2Gi

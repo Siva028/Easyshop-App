@@ -8,11 +8,12 @@ image:
 replicaCount: 3
 
 ingress:
-  host: easyshop.yourdomain.com
+  host: easyshop-siva.online    # ← replace with your domain or use nip.io
+  certIssuer: letsencrypt-prod   # use staging issuer for prod to avoid hitting rate limits during testing; switch to letsencrypt-prod for production use
 
 env:
-  NEXT_PUBLIC_API_URL: "https://easyshop.yourdomain.com/api"
-  NEXTAUTH_URL: "https://easyshop.yourdomain.com"
+  NEXT_PUBLIC_API_URL: "https://easyshop-siva.online/api"
+  NEXTAUTH_URL: "https://easyshop-siva.online"
 
 mongodb:
   storageSize: 20Gi
