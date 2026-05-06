@@ -7,7 +7,7 @@ set -e
 # ── Step 1: Install ArgoCD ────────────────────────────────────────
 kubectl create namespace argocd --dry-run=client -o yaml | kubectl apply -f -
 
-kubectl apply -n argocd \
+kubectl apply -n argocd --server-side=true --force-conflicts \
   -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 
 # Wait for ArgoCD to be ready
